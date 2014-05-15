@@ -28,6 +28,7 @@ class Kint
 	public static $enabled;
 	public static $theme;
 	public static $expandedByDefault;
+	public static $_stack = array();
 	public static $devel; # todo remove
 
 	protected static $_firstRun = true;
@@ -79,7 +80,7 @@ class Kint
 	{
 		if ( !Kint::enabled() ) return;
 
-		echo Kint_Decorators_Rich::_css();
+		self::$_stack[] = Kint_Decorators_Rich::_css();
 
 		isset( $trace ) or $trace = debug_backtrace( true );
 
@@ -178,8 +179,9 @@ class Kint
 
 			unset( $function, $args, $file, $line, $source );
 		}
-
+		ob_start();
 		require KINT_DIR . 'view/trace.phtml';
+		self::$_stack[] = ob_get_clean();
 	}
 
 	/**
@@ -253,14 +255,14 @@ class Kint
 		switch ( $modifier ) {
 			case '+':
 				self::$maxLevels = $maxLevelsOldValue;
-				echo $output;
+				self::$_stack[] =  $output;
 				break;
 			case '@':
 				self::$_firstRun = $firstRunOldValue;
 				return $output;
 				break;
 			default:
-				echo $output;
+				self::$_stack[] = $output;
 				break;
 		}
 
@@ -528,6 +530,11 @@ class Kint
 			$newStr .= $token;
 		}
 		return $newStr;
+	}
+	public static function output(){
+		foreach(self::$_stack as $stack){
+			echo $stack;
+		}
 	}
 }
 
