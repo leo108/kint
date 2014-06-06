@@ -1,10 +1,7 @@
 <?php
 class Kint_Decorators_Rich extends Kint
 {
-	// make calls to Kint::dump() from different places in source coloured differently.
-	private static $_usedColors = array();
-
-	public static function decorate( kintVariableData $kintVar )
+	public static function decorate( kintVariableData $kintVar, $callerArr=null )
 	{
 		$output = '<dl>';
 
@@ -21,7 +18,6 @@ class Kint_Decorators_Rich extends Kint
 		}
 
 		$output .= self::_drawHeader( $kintVar ) . $kintVar->value . '</dt>';
-
 
 		if ( $extendedPresent ) {
 			$output .= '<dd>';
@@ -80,7 +76,9 @@ class Kint_Decorators_Rich extends Kint
 		}
 
 		$output .= '</dl>';
-
+        if($callerArr !== null){
+            $output .= self::_showCaller( $callerArr[0], $callerArr[1] );
+        }
 		return $output;
 	}
 
@@ -143,66 +141,48 @@ class Kint_Decorators_Rich extends Kint
 	/**
 	 * called for each dump, opens the html tag
 	 *
-	 * @param array $callee caller information taken from debug backtrace
-	 *
 	 * @return string
 	 */
-	protected static function _wrapStart( $callee )
+	protected static function _wrapStart()
 	{
-		// colors looping outputs the same (i.e. if same line in code dumps variables multiple time,
-		// we assume it's in a loop)
-
-		$uid = isset( $callee['file'] ) ? crc32( $callee['file'] . $callee['line'] ) : 'no-file';
-
-		if ( isset( self::$_usedColors[$uid] ) ) {
-			$class = self::$_usedColors[$uid];
-		} else {
-			$class                   = sizeof( self::$_usedColors );
-			self::$_usedColors[$uid] = $class;
-		}
-
-		$class = "kint_{$class}";
-
-
-		return "<div class=\"kint {$class}\">";
+		return "<div class=\"kint\">";
 	}
 
 
 	/**
 	 * closes Kint::_wrapStart() started html tags and displays callee information
 	 *
-	 * @param array $callee caller information taken from debug backtrace
-	 * @param array $prevCaller previous caller information taken from debug backtrace
-	 *
 	 * @return string
 	 */
-	protected static function _wrapEnd( $callee, $prevCaller )
+	protected static function _wrapEnd()
 	{
-		if ( !Kint::$displayCalledFrom ) {
-			return '</div>';
-		}
-
-		$callingFunction = '';
-		if ( isset( $prevCaller['class'] ) ) {
-			$callingFunction = $prevCaller['class'];
-		}
-		if ( isset( $prevCaller['type'] ) ) {
-			$callingFunction .= $prevCaller['type'];
-		}
-		if ( isset( $prevCaller['function'] ) && !in_array( $prevCaller['function'], Kint::$_statements ) ) {
-			$callingFunction .= $prevCaller['function'] . '()';
-		}
-		$callingFunction and $callingFunction = " in ({$callingFunction})";
-
-
-		$calleeInfo = isset( $callee['file'] )
-			? 'Called from ' . self::shortenPath( $callee['file'], $callee['line'] )
-			: '';
-
-
-		return $calleeInfo || $callingFunction
-			? "<footer>{$calleeInfo}{$callingFunction}</footer></div>"
-			: "</div>";
+        return '</div>';
 	}
+
+    private static function _showCaller( $callee, $prevCaller ){
+        if ( !Kint::$displayCalledFrom ) {
+            return '';
+        }
+
+        $callingFunction = '';
+        if ( isset( $prevCaller['class'] ) ) {
+            $callingFunction = $prevCaller['class'];
+        }
+        if ( isset( $prevCaller['type'] ) ) {
+            $callingFunction .= $prevCaller['type'];
+        }
+        if ( isset( $prevCaller['function'] ) && !in_array( $prevCaller['function'], Kint::$_statements ) ) {
+            $callingFunction .= $prevCaller['function'] . '()';
+        }
+        $callingFunction and $callingFunction = " in ({$callingFunction})";
+
+
+        $calleeInfo = isset( $callee['file'] )
+            ? 'Called from ' . self::shortenPath( $callee['file'], $callee['line'] )
+            : '';
+        return $calleeInfo || $callingFunction
+            ? "<pre>{$calleeInfo}{$callingFunction}</pre>"
+            : "";
+    }
 
 }
