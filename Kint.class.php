@@ -476,6 +476,9 @@ class Kint
         return $newStr;
     }
     public static function output(){
+        if(count(self::$_stack['dump']) == 0 && count(self::$_stack['trace']) == 0){
+            return;
+        }
         $output = Kint_Decorators_Rich::_css();
         $output .= Kint_Decorators_Rich::_wrapStart();
         foreach(self::$_stack['dump'] as $stack){
